@@ -164,6 +164,11 @@ service:
   # override .Values.port with these values
   ports: null
 
+# Cache backend for consumer
+cache:
+  enabled: false
+  backend: ""
+
 # mount secrets as files, useful for mounting key file
 extraSecretMounts:
   []

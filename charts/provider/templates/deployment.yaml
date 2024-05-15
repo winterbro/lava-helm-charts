@@ -167,7 +167,10 @@ spec:
             "--chain-id", "{{ .Values.chainId }}",
             "--log_level", "{{ .Values.logLevel }}",
             {{- if .Values.metrics.enabled }}
-            "--metrics-listen-address", "0.0.0.0:{{ .Values.metrics.port }}"
+            "--metrics-listen-address", "0.0.0.0:{{ .Values.metrics.port }}",
+            {{- end }}
+            {{- if .Values.cache.enabled }}
+            "--cache-be", "{{ .Values.cache.backend }}"
             {{- end }}
           ]
           {{- else }}
@@ -183,7 +186,10 @@ spec:
             "--chain-id", "{{.Values.chainId}}",
             "--log_level", "{{ .Values.logLevel }}",
             {{- if .Values.metrics.enabled }}
-            "--metrics-listen-address", "0.0.0.0:{{ .Values.metrics.port }}"
+            "--metrics-listen-address", "0.0.0.0:{{ .Values.metrics.port }}",
+            {{- end }}
+            {{- if .Values.cache.enabled }}
+            "--cache-be", "{{ .Values.cache.backend }}",
             {{- end }}
           ]
           {{- end }}
