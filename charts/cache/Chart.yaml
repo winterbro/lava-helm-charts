@@ -1,0 +1,5 @@
+apiVersion: v2
+name: lava-cache
+description: Helm chart for launching a lava cache
+type: application
+version: 0.0.1

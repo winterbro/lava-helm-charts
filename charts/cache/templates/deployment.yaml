@@ -1,0 +1,122 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "cache.fullname"  . }}
+  labels:
+    lavanet.xyz/node_type: "cache"
+    {{- include "cache.labels" . | nindent 4 }}
+spec:
+  {{- if .Values.persistentVolume.enabled }}
+  replicas: 1
+  strategy:
+    type: Recreate
+  {{- else }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: "25%"
+      maxUnavailable: 5%
+  {{- end }}
+  selector:
+    matchLabels:
+      lavanet.xyz/node_type: "cache"
+      {{- include "cache.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+       {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        lavanet.xyz/node_type: "cache"
+        {{- include "cache.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- if .Values.serviceAccountName }}
+      serviceAccountName: {{ .Values.serviceAccountName }}
+      {{- end }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ include "cache.fullname"  . }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          volumeMounts:
+            - name: data-volume
+              mountPath: {{ .Values.persistentVolume.mountPath }}
+              subPath: "{{ .Values.persistentVolume.subPath }}"
+          ports:
+            - name: {{ .Values.port.name }}
+              containerPort: {{ .Values.port.number }}
+              protocol: {{ .Values.port.protocol }}
+            {{- if .Values.metrics.enabled }}
+            - name: metrics
+              containerPort: {{ .Values.metrics.port }}
+              protocol: TCP
+            {{- end }}
+          {{- if .Values.lavavisor }}
+          command: ["lavavisor"]
+          args: [
+            "pod",
+            "--cmd",
+            "lavap cache {{ .Values.listenAddress }}:{{ .Values.port.number }} --home {{ .Values.persistentVolume.mountPath }}",
+            "--directory", "{{ .Values.persistentVolume.mountPath }}",
+            "--log_level", "{{ .Values.logLevel }}",
+            {{- if .Values.metrics.enabled }}
+            "--metrics_address", "{{ .Values.metrics.address }}:{{ .Values.metrics.port }}"
+            {{- end }}
+          ]
+          {{- else }}
+          command: ["lavap"]
+          args: [
+            "cache", "{{ .Values.listenAddress }}:{{ .Values.port.number }}",
+            "--home",  "{{ .Values.persistentVolume.mountPath }}",
+            "--log_level", "{{ .Values.logLevel }}",
+            {{- if .Values.metrics.enabled }}
+            "--metrics_address", "0.0.0.0:{{ .Values.metrics.port }}"
+            {{- end }}
+          ]
+          {{- end }}
+          {{- with .Values.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{ if .Values.customLivenessProbe.enabled }}
+          livenessProbe:
+            {{- toYaml (unset .Values.customLivenessProbe "enabled") | nindent 12 }}
+          {{- end }}
+          {{ if .Values.customReadinessProbe.enabled }}
+          readinessProbe:
+            {{- toYaml (unset .Values.customReadinessProbe "enabled") | nindent 12 }}
+          {{ end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      volumes:
+        - name: data-volume
+        {{- if .Values.persistentVolume.enabled }}
+          persistentVolumeClaim:
+            claimName: {{ if .Values.persistentVolume.existingClaim }}{{ .Values.persistentVolume.existingClaim }}{{- else }} {{- include "cache.fullname"  . }}-data-volume-pvc {{- end }}
+        {{- else }}
+          emptyDir:
+          {{- if .Values.emptyDir.sizeLimit }}
+            sizeLimit: {{ .Values.emptyDir.sizeLimit }}
+          {{- else }}
+            {}
+          {{- end -}}
+        {{- end -}}

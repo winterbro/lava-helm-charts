@@ -1,0 +1,175 @@
+# set the log level for the node
+logLevel: "debug"
+
+# override the fullname
+fullnameOverride: null
+nameOverride: null
+
+# use lavavisor or control versions directly with docker images
+# defaults true to use lavavisor
+lavavisor: false
+
+# image to deploy
+image:
+  repository: us-central1-docker.pkg.dev/lavanet-public/images/lava-provider
+  pullPolicy: Always
+  tag: v2.0.1
+
+# listen address for the cache
+listenAddress: "127.0.0.1"
+
+# port to expose the cache on
+port:
+  name: default
+  number: 7777
+  protocol: TCP
+
+# set service account name
+serviceAccountName: null
+
+# service settings
+service:
+  enabled: true
+  name: lava-cache
+  type: ClusterIP
+  annotations: {}
+  # override .Values.port with these values
+  ports: null
+
+# setup ingress for the node
+ingress:
+  enabled: false
+  className: nginx
+  rules:
+    - host: provider-cache.rift.ventures
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: lava-cache
+                port:
+                  name: default
+  annotations:
+    nginx.ingress.kubernetes.io/backend-protocol: "GRPC"
+
+# metrics port to expose the node on
+metrics:
+  enabled: true
+  address: "127.0.0.1"
+  port: 5555
+
+# enable service monitor for prometheus
+serviceMonitor:
+  enabled: true
+  interval: 15s
+  path: /metrics
+
+# setup pvc for the node
+persistentVolume:
+  ## If true, will create/use a Persistent Volume Claim
+  ## If false, use emptyDir
+  enabled: true
+
+  ## Must match those of existing PV or dynamic provisioner
+  ## Ref: http://kubernetes.io/docs/user-guide/persistent-volumes/
+  accessModes:
+    - ReadWriteOnce
+
+  ## Persistent Volume labels
+  labels: {}
+
+  ## Persistent Volume annotations
+  annotations: {}
+
+  ## Persistent Volume existing claim name
+  ## Requires persistentVolume.enabled: true
+  ## If defined, PVC must be created manually before volume will be bound
+  existingClaim: ""
+
+  ## server data Persistent Volume mount root path
+  mountPath: /data
+
+  ## data Persistent Volume size
+  size: 10Gi
+
+  ## Persistent Volume Storage Class
+  ## If defined, storageClassName: <storageClass>
+  ## If set to "-", storageClassName: "", which disables dynamic provisioning
+  ## If undefined (the default) or set to null, no storageClassName spec is
+  ##   set, choosing the default provisioner.  (gp2 on AWS, standard on
+  ##   GKE, AWS & OpenStack)
+  storageClass: openebs-zfspv
+
+  ## Subdirectory of data Persistent Volume to mount
+  ## Useful if the volume's root directory is not empty
+  subPath: ""
+
+  ## Persistent Volume Claim Selector
+  ## Useful if Persistent Volumes have been provisioned in advance
+  ## Ref: https://kubernetes.io/docs/concepts/storage/persistent-volumes/#selector
+  selector: null
+  ## ex:
+  # selector:
+  #  matchLabels:
+  #    release: "stable"
+  #  matchExpressions:
+  #    - { key: environment, operator: In, values: [ dev ] }
+
+  ## Persistent Volume Name
+  ## Useful if Persistent Volumes have been provisioned in advance and you want to use a specific one
+  ##
+  volumeName: null
+  # volumeName: ""
+
+  volumeBindingMode: null
+
+  emptyDir:
+    ## emptyDir volume size limit
+    sizeLimit: ""
+
+emptyDir:
+  ## emptyDir volume size limit
+  sizeLimit: ""
+
+# resource limits for the node
+resources:
+  requests:
+    cpu: "250m"
+    memory: 250Mi
+  limits:
+    cpu: "2"
+    memory: "8Gi"
+
+# use a custom readiness probe
+customReadinessProbe:
+  enabled: false
+  # httpGet:
+  #   path: /health
+  #   port: 5000
+  # initialDelaySeconds: 30
+  # periodSeconds: 10
+  # timeoutSeconds: 5
+  # successThreshold: 1
+  # failureThreshold: 3
+
+# use a custom liveness probe
+customLivenessProbe:
+  enabled: false
+  # httpGet:
+  #   path: /health
+  #   port: 5000
+  # initialDelaySeconds: 30
+  # periodSeconds: 10
+  # timeoutSeconds: 5
+  # successThreshold: 1
+  # failureThreshold: 3
+
+imagePullSecrets: []
+nodeSelector: {}
+tolerations: []
+affinity: {}
+podAnnotations: {}
+podSecurityContext: {}
+securityContext: {}

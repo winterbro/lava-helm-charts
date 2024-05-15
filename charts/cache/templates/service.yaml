@@ -1,0 +1,38 @@
+---
+{{- $serviceName := include "cache.fullname" .  -}}
+{{- if .Values.service.name -}}
+{{- $serviceName = .Values.service.name -}}
+{{- end -}}
+{{- if .Values.service.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $serviceName }}
+  {{- with .Values.service.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{ end }}
+  labels:
+    lavanet.xyz/node_type: "cache"
+    {{- include "cache.labels" . | nindent 4 }}
+spec:
+  type:  {{ .Values.service.type }}
+  ports:
+  {{- with .Values.service.ports }}
+    {{- toYaml . | nindent 4 }}
+  {{- else }}
+    - name: {{ .Values.port.name }}
+      port: {{ .Values.port.number }}
+      protocol: {{ .Values.port.protocol }}
+      targetPort: {{ .Values.port.name }}
+  {{- end }}
+  {{- if .Values.metrics.enabled }}
+    - name: metrics
+      port: {{ .Values.metrics.port }}
+      protocol: TCP
+      targetPort: metrics
+  {{- end }}
+  selector:
+    lavanet.xyz/node_type: "cache"
+    {{- include "cache.selectorLabels" . | nindent 4 }}
+{{- end }}
